@@ -3,13 +3,14 @@ package quickstart;
 /* @Indexed */
 message Person {
 
-   /* @IndexedField */
+   /* @IndexedField(index = true, store = true, analyze = true) */
    required string name = 1;
 
-   /* @IndexedField(index=false, store=false) */
+   /* @IndexedField(index = true, store = false) */
    required int32 id = 2;
 
    optional string email = 3;
+   optional string address = 4;
 
    enum PhoneType {
       MOBILE = 0;
@@ -20,13 +21,13 @@ message Person {
    /* @Indexed */
    message PhoneNumber {
 
-      /* @IndexedField */
+      /* @Field */
       required string number = 1;
 
-      /* @IndexedField(index=false, store=false) */
+      /* @IndexedField(index = false, store = false) */
       optional PhoneType type = 2 [default = HOME];
    }
 
-   /* @IndexedField(index=true, store=false) */
-   repeated PhoneNumber phone = 4;
+   /* @IndexedField(index = true, store = false) */
+   repeated PhoneNumber phone = 5;
 }

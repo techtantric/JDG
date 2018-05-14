@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Import;
 //import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 
-@Import({SnowForecast.class})
+@Import({AddressBookManager.class})
 @SpringBootApplication
 //@EnableEurekaClient
 public class TcsNgaMS1Application {

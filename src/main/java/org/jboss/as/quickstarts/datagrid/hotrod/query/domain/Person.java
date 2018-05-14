@@ -18,9 +18,11 @@ package org.jboss.as.quickstarts.datagrid.hotrod.query.domain;
 
 import java.util.List;
 
+
 /**
  * @author Adrian Nistor
  */
+
 public class Person {
 
    private String name;

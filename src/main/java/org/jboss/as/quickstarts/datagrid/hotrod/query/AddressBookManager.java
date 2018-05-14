@@ -16,6 +16,19 @@
  */
 package org.jboss.as.quickstarts.datagrid.hotrod.query;
 
+import java.io.BufferedReader;
+import java.io.Console;
+import java.io.IOError;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Properties;
+
 import org.infinispan.client.hotrod.Flag;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
@@ -35,29 +48,21 @@ import org.jboss.as.quickstarts.datagrid.hotrod.query.domain.PhoneType;
 import org.jboss.as.quickstarts.datagrid.hotrod.query.marshallers.PersonMarshaller;
 import org.jboss.as.quickstarts.datagrid.hotrod.query.marshallers.PhoneNumberMarshaller;
 import org.jboss.as.quickstarts.datagrid.hotrod.query.marshallers.PhoneTypeMarshaller;
-
-import java.io.BufferedReader;
-import java.io.Console;
-import java.io.IOError;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Properties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * A simple demo for remote query capabilities.
  *
  * @author Adrian Nistor
  */
+@Configuration
 public class AddressBookManager {
 
    private static final String SERVER_HOST = "jdg.host";
    private static final String HOTROD_PORT = "jdg.hotrod.port";
+   private static final String JDG_ENV = "jdg.env";
+
    private static final String CACHE_NAME = "jdg.cache";
    private static final String PROPERTIES_FILE = "jdg.properties";
 
@@ -83,28 +88,27 @@ public class AddressBookManager {
     * A cache that holds both Person and Memo objects.
     */
    private RemoteCache<Integer, Object> remoteCache;
+   private AddressBookManager addressBookManager;
 
    public AddressBookManager() throws Exception {
-      final String host = jdgProperty(System.getenv("HOTROD_SERVICE"));
-      final int hotrodPort = Integer.parseInt(System.getenv("HOTROD_SERVICE_PORT"));
-      final String cacheName = jdgProperty(CACHE_NAME);  // The name of the address book  cache, as defined in your server config.
+	      final String host = jdgProperty(JDG_ENV).equals("cloud")?System.getenv("HOTROD_SERVICE"):jdgProperty(SERVER_HOST);
+	      final int hotrodPort = jdgProperty(JDG_ENV).equals("cloud")?Integer.parseInt(System.getenv("HOTROD_SERVICE_PORT")):Integer.parseInt(jdgProperty(HOTROD_PORT));
+	      final String cacheName = jdgProperty(CACHE_NAME);  // The name of the address book  cache, as defined in your server config.
 
-      System.out.printf("Using cache %s on %s:%d\n\n", cacheName, host, hotrodPort);
+	      ConfigurationBuilder builder = new ConfigurationBuilder();
+	      builder.addServer()
+	            .host(host)
+	            .port(hotrodPort)
+	            .marshaller(new ProtoStreamMarshaller());  // The Protobuf based marshaller is required for query capabilities
+	      cacheManager = new RemoteCacheManager(builder.build());
 
-      ConfigurationBuilder builder = new ConfigurationBuilder();
-      builder.addServer()
-            .host(host)
-            .port(hotrodPort)
-            .marshaller(new ProtoStreamMarshaller());  // The Protobuf based marshaller is required for query capabilities
-      cacheManager = new RemoteCacheManager(builder.build());
+	      remoteCache = cacheManager.getCache(cacheName);
+	      if (remoteCache == null) {
+	         throw new RuntimeException("Cache '" + cacheName + "' not found. Please make sure the server is properly configured");
+	      }
 
-      remoteCache = cacheManager.getCache(cacheName);
-      if (remoteCache == null) {
-         throw new RuntimeException("Cache '" + cacheName + "' not found. Please make sure the server is properly configured");
-      }
-
-      registerSchemasAndMarshallers();
-   }
+	      registerSchemasAndMarshallers();
+	   }
 
    /**
     * Register the Protobuf schemas and marshallers with the client and then register the schemas with the server too.
@@ -181,6 +185,17 @@ public class AddressBookManager {
       // put the Person in cache
       remoteCache.put(person.getId(), person);
    }
+   
+   public Person addPerson_New(Person person) {
+
+	      if (remoteCache.containsKey(person.getId())) {
+	         System.out.println("Updating person with id " + person.getId());
+	      }
+
+	      // put the Person in cache
+	      remoteCache.put(person.getId(), person);
+	      return (Person) remoteCache.get(person.getId());
+	   }
 
    private void removePerson() {
       int id = Integer.parseInt(readConsole("Enter person id to remove (int): "));
@@ -189,6 +204,12 @@ public class AddressBookManager {
       Person prevValue = (Person) remoteCache.withFlags(Flag.FORCE_RETURN_VALUE).remove(id);
       System.out.println("Removed: " + prevValue);
    }
+   
+   public Person removePerson_New(String id) {
+	      // remove from cache
+	      Person prevValue = (Person) remoteCache.withFlags(Flag.FORCE_RETURN_VALUE).remove(Integer.parseInt(id));
+	      return prevValue;
+	   }
 
    private void addPhone() {
       System.out.println("Adding a phone number to a person");
@@ -215,6 +236,25 @@ public class AddressBookManager {
       // update the Person in cache
       remoteCache.put(person.getId(), person);
    }
+   public Person addPhone_new(PhoneNumber phoneNumber, String personId) {
+	      Person person = (Person) remoteCache.get(Integer.parseInt(personId));
+	      if (person == null) {
+	         System.out.println("Person not found");
+	         return null;
+	      }
+	      System.out.println("> " + person);
+
+	      List<PhoneNumber> phones = person.getPhones();
+	      if (phones == null) {
+	         phones = new ArrayList<PhoneNumber>();
+	      }
+	      phones.add(phoneNumber);
+	      person.setPhones(phones);
+
+	      // update the Person in cache
+	      remoteCache.put(person.getId(), person);
+	      return (Person) remoteCache.get(Integer.parseInt(personId));
+	   }
 
    private void removePhone() {
       System.out.println("Removing a phone number from a person");
@@ -246,8 +286,16 @@ public class AddressBookManager {
          System.out.println("key=" + key + " value=" + remoteCache.get(key));
       }
    }
+   public ArrayList<Person> printAllEntries_New() {
+	   ArrayList<Person> persons= new ArrayList<Person>();
+	      for (Object key : remoteCache.keySet()) {
+	         System.out.println("key=" + key + " value=" + remoteCache.get(key));
+	         persons.add((Person)remoteCache.get(key));
+	      }
+	      return persons;
+	   }
 
-   private void clearCache() {
+   public void clearCache() {
       remoteCache.clear();
       System.out.println("Cache cleared.");
    }
@@ -293,14 +341,18 @@ public class AddressBookManager {
    private void stop() {
       cacheManager.stop();
    }
+   
+   @Bean
+   public String mainMethod() throws Exception {
+      addressBookManager = new AddressBookManager();
+      return "";
+   }
 
-   public static void main(String[] args) throws Exception {
-      AddressBookManager manager = new AddressBookManager();
+    void actONdata(String action) throws Exception {
       System.out.println(APP_MENU);
 
       while (true) {
          try {
-            String action = readConsole("> ");
             if (action == null) {
                continue;
             }
@@ -312,25 +364,25 @@ public class AddressBookManager {
             if ("0".equals(action)) {
                System.out.println(APP_MENU);
             } else if ("1".equals(action)) {
-               manager.addPerson();
+               addressBookManager.addPerson();
             } else if ("2".equals(action)) {
-               manager.removePerson();
+               addressBookManager.removePerson();
             } else if ("3".equals(action)) {
-               manager.addPhone();
+               addressBookManager.addPhone();
             } else if ("4".equals(action)) {
-               manager.removePhone();
+               addressBookManager.removePhone();
             } else if ("5".equals(action)) {
-               manager.queryPersonByName();
+               addressBookManager.queryPersonByName();
             } else if ("6".equals(action)) {
-               manager.queryPersonByPhone();
+               addressBookManager.queryPersonByPhone();
             } else if ("7".equals(action)) {
-               manager.addMemo();
+               addressBookManager.addMemo();
             } else if ("8".equals(action)) {
-               manager.queryMemoByAuthor();
+               addressBookManager.queryMemoByAuthor();
             } else if ("9".equals(action)) {
-               manager.printAllEntries();
+               addressBookManager.printAllEntries();
             } else if ("10".equals(action)) {
-               manager.clearCache();
+               addressBookManager.clearCache();
             } else if ("11".equals(action)) {
                System.out.println("Bye!");
                break;
@@ -343,7 +395,7 @@ public class AddressBookManager {
          }
       }
 
-      manager.stop();
+      addressBookManager.stop();
    }
 
    private static String readConsole(String prompt) {
@@ -399,4 +451,33 @@ public class AddressBookManager {
          is.close();
       }
    }
+   
+	public List<Person> queryPersonByNamebyIckle(String namePattern) {
+
+		QueryFactory qf = Search.getQueryFactory(remoteCache);
+		Query query = qf.create("FROM quickstart.Person where name = '"
+				+ namePattern + "'");
+
+		List<Person> results = query.list();
+		System.out.println("Found " + results.size() + " matches:");
+		for (Person p : results) {
+			System.out.println(">> " + p);
+		}
+		return results;
+	}
+	
+	public List<Person> queryFuzzyPersonByNamebyIckle(String namePattern) {
+
+		QueryFactory qf = Search.getQueryFactory(remoteCache);
+		Query query = qf.create("FROM quickstart.Person where name : '"
+				+ namePattern + "'~2");
+
+		List<Person> results = query.list();
+		System.out.println("Found " + results.size() + " matches:");
+		for (Person p : results) {
+			System.out.println(">> " + p);
+		}
+		return results;
+	}
+	
 }
