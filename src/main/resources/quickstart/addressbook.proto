@@ -1,9 +1,10 @@
 package quickstart;
 
-/* @Indexed */
+/* @Indexed 
+@Analyzer(definition = "standard")*/
 message Person {
 
-   /* @IndexedField(index = true, store = true, analyze = true) */
+   /* @Field(store = Store.YES, analyze = Analyze.YES) */
    required string name = 1;
 
    /* @IndexedField(index = true, store = false) */
