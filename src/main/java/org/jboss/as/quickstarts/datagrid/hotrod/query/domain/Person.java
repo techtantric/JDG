@@ -18,19 +18,38 @@ package org.jboss.as.quickstarts.datagrid.hotrod.query.domain;
 
 import java.util.List;
 
-
 /**
  * @author Adrian Nistor
  */
-
 public class Person {
 
    private String name;
    private int id;
    private String email;
+   private String address;
+   private boolean male;
    private List<PhoneNumber> phones;
+   
+   
 
-   public String getName() {
+   
+   public boolean isMale() {
+	return male;
+}
+
+public void setMale(boolean male) {
+	this.male = male;
+}
+
+public String getAddress() {
+	return address;
+}
+
+public void setAddress(String address) {
+	this.address = address;
+}
+
+public String getName() {
       return name;
    }
 
@@ -62,13 +81,13 @@ public class Person {
       this.phones = phones;
    }
 
-   @Override
-   public String toString() {
-      return "Person{" +
-            "id=" + id +
-            ", name='" + name +
-            "', email='" + email + '\'' +
-            ", phones=" + phones +
-            '}';
-   }
+@Override
+public String toString() {
+	return "Person [name=" + name + ", id=" + id + ", email=" + email
+			+ ", address=" + address + ", male=" + male + ", phones=" + phones
+			+ "]";
+}
+
+
+   
 }
