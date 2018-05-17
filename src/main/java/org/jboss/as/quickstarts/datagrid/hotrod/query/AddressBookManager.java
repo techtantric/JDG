@@ -94,7 +94,7 @@ public class AddressBookManager {
 	      final String host = jdgProperty(JDG_ENV).equals("cloud")?System.getenv("HOTROD_SERVICE"):jdgProperty(SERVER_HOST);
 	      final int hotrodPort = jdgProperty(JDG_ENV).equals("cloud")?Integer.parseInt(System.getenv("HOTROD_SERVICE_PORT")):Integer.parseInt(jdgProperty(HOTROD_PORT));
 	      final String cacheName = jdgProperty(CACHE_NAME);  // The name of the address book  cache, as defined in your server config.
-
+	      
 	      ConfigurationBuilder builder = new ConfigurationBuilder();
 	      builder.addServer()
 	            .host(host)
@@ -138,6 +138,7 @@ public class AddressBookManager {
          throw new IllegalStateException("Some Protobuf schema files contain errors:\n" + errors);
       }
    }
+
 
    private void queryPersonByName() {
       String namePattern = readConsole("Enter person name pattern: ");
@@ -470,7 +471,7 @@ public class AddressBookManager {
 
 		QueryFactory qf = Search.getQueryFactory(remoteCache);
 		Query query = qf.create("FROM quickstart.Person where name : '"
-				+ namePattern + "'~2");
+				+ namePattern + "'~3");
 
 		List<Person> results = query.list();
 		System.out.println("Found " + results.size() + " matches:");
@@ -479,5 +480,138 @@ public class AddressBookManager {
 		}
 		return results;
 	}
+	
+	public List<Person> queryPersonByNamebyIckleRel(String namePattern) {
+
+		QueryFactory qf = Search.getQueryFactory(remoteCache);
+		Query query = qf.create("FROM quickstart.Person where name = '"
+				+ namePattern + "'");
+
+		List<Person> results = query.list();
+		System.out.println("Found " + results.size() + " matches:");
+		for (Person p : results) {
+			System.out.println(">> " + p);
+		}
+		return results;
+	}
+	
+	public List<Person> queryPhoneNumberForPersonbyIckle(String numberPattern) {
+		
+
+		QueryFactory qf = Search.getQueryFactory(remoteCache);
+		Query query = qf.create("FROM quickstart.Person _p WHERE _p.phone.number = '"
+				+ numberPattern + "'");
+
+		List<Person> results = query.list();
+		System.out.println("Found " + results.size() + " matches:");
+		for (Person p : results) {
+			System.out.println(">> " + p);
+		}
+		return results;
+	}
+	public void queryPersonByNameAndAddressbyIckle(String namePattern, String addressPattern) {
+		
+
+		QueryFactory qf = Search.getQueryFactory(remoteCache);
+		Query query = qf.create("FROM quickstart.Person where name : '"+namePattern+"' && address : '"+addressPattern+"'");
+
+		List<Person> results = query.list();
+		System.out.println("Found " + results.size() + " matches:");
+		for (Person p : results) {
+			System.out.println(">> " + p);
+		}
+	}
+	public List<Person> queryPersonByNameOrAddressbyIckle(String namePattern, String addressPattern) {
+		
+
+		QueryFactory qf = Search.getQueryFactory(remoteCache);
+		Query query = qf.create("FROM quickstart.Person where name : '"+namePattern+"' || address : '"+addressPattern+"'");
+
+		List<Person> results = query.list();
+		System.out.println("Found " + results.size() + " matches:");
+		for (Person p : results) {
+			System.out.println(">> " + p);
+		}
+		return results;
+	}
+	
+	public void queryPersonByEmailWithNot(String email) {
+		
+
+		QueryFactory qf = Search.getQueryFactory(remoteCache);
+		Query query = qf.create("FROM quickstart.Person where email != '"+email+"'");
+
+		List<Person> results = query.list();
+		System.out.println("Found " + results.size() + " matches:");
+		for (Person p : results) {
+			System.out.println(">> " + p);
+		}
+	}
+	
+	public void queryMaleWithNot(boolean email) {
+		
+
+		QueryFactory qf = Search.getQueryFactory(remoteCache);
+		Query query = qf.create("FROM quickstart.Person where male !"+email);
+
+		List<Person> results = query.list();
+		System.out.println("Found " + results.size() + " matches:");
+		for (Person p : results) {
+			System.out.println(">> " + p);
+		}
+	}
+	public void queryPersonByNamebyIckelAndFuzzyDescription(String namePattern) {
+		
+
+		QueryFactory qf = Search.getQueryFactory(remoteCache);
+		Query query = qf.create("FROM quickstart.Person where name : '"+namePattern+"'~2 && address : '"+"Sodepur1'");
+
+		List<Person> results = query.list();
+		System.out.println("Found " + results.size() + " matches:");
+		for (Person p : results) {
+			System.out.println(">> " + p);
+		}
+	}
+	public void queryMemoByTextbyIckelAndFuzzyDescription(String namePattern ) {
+		
+
+		QueryFactory qf = Search.getQueryFactory(remoteCache);
+		Query query = qf.create("FROM quickstart.Memo where text : '"
+				+ namePattern + "'");
+
+		List<Memo> results = query.list();
+		System.out.println("Found " + results.size() + " matches:");
+		for (Memo p : results) {
+			System.out.println(">> " + p);
+		}
+	}
+	
+	public void queryPersonByNamebyIckelAndFuzzyProximity(String namePattern) {
+		
+
+		QueryFactory qf = Search.getQueryFactory(remoteCache);
+		Query query = qf.create("FROM quickstart.Person where name : '"
+				+ namePattern + "'~3");
+
+		List<Person> results = query.list();
+		System.out.println("Found " + results.size() + " matches:");
+		for (Person p : results) {
+			System.out.println(">> " + p);
+		}
+	}
+	public void queryPersonByNamebyIckelAndFuzzyWildCard(String namePattern) {
+		
+
+		QueryFactory qf = Search.getQueryFactory(remoteCache);
+		Query query = qf.create("FROM quickstart.Person where name : '"
+				+ namePattern + "*'");
+
+		List<Person> results = query.list();
+		System.out.println("Found " + results.size() + " matches:");
+		for (Person p : results) {
+			System.out.println(">> " + p);
+		}
+	}
+	
 	
 }
