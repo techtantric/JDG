@@ -11,7 +11,9 @@ message Person {
    required int32 id = 2;
 
    optional string email = 3;
+   /* @Field(store = Store.YES, analyze = Analyze.YES) */
    optional string address = 4;
+   optional bool male = 5;
 
    enum PhoneType {
       MOBILE = 0;
@@ -30,5 +32,5 @@ message Person {
    }
 
    /* @IndexedField(index = true, store = false) */
-   repeated PhoneNumber phone = 5;
+   repeated PhoneNumber phone = 6;
 }
